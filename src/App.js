@@ -120,7 +120,7 @@ function App() {
           <h2>Allergies</h2>
           <ul>
             {data.allergies.map((a, idx) => (
-              <li key={idx}>{a}</li>
+              <li key={idx}>{JSON.stringify(a)}</li>
             ))}
           </ul>
         </div>
