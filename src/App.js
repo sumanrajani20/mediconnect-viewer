@@ -72,7 +72,19 @@ function App() {
   return (
     <div style={{ padding: 20 }}>
       <h1>Medical Summary</h1>
-
+      {data.doctorVisits && data.doctorVisits.length > 0 && (
+        <div>
+          <h2>Doctor Visits</h2>
+          <ul>
+            {data.doctorVisits.map((v, idx) => (
+              <li key={idx}>
+                {v.date} - {v.doctorName}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
       {/* Render Prescriptions */}
       {data.prescriptions && data.prescriptions.length > 0 && (
         <div>
@@ -88,18 +100,7 @@ function App() {
       )}
 
       {/* Render Doctor Visits */}
-      {data.doctorVisits && data.doctorVisits.length > 0 && (
-        <div>
-          <h2>Doctor Visits</h2>
-          <ul>
-            {data.doctorVisits.map((v, idx) => (
-              <li key={idx}>
-                {v.date} - {v.doctorName}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+
 
       {/* Render Temperatures */}
       {data.temperature && data.temperature.length > 0 && (
