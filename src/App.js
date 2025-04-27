@@ -108,7 +108,14 @@ function App() {
           <h2>Temperature</h2>
           <ul>
             {data.temperature.map((t, idx) => (
-              <li key={idx}>{t.temperature}</li>
+            <> <li key={idx}>{"Temperature: " + t.temperature}</li> 
+              <li key={idx}>{"Date: " + t.date}</li>
+              <li key={idx}>{"Notes: " + t.notes}</li>
+              <li key={idx}>{"Status: " + t.status}</li>
+              <li key={idx}>{"Unit: " + t.unit}</li>
+              <br></br>
+              </>
+
             ))}
           </ul>
         </div>
