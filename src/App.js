@@ -7,18 +7,13 @@ function App() {
   const [params] = useSearchParams();
   const token = params.get("token");
 
-  const [data, setData] = useState({
-    prescriptions: [],
-    doctorVisits: [],
-    temperatures: [],
-    allergies: [],
-    bloodGlucose: [],
-    labResults: [],
-    radiology: [],
-    heartRate: [],
-    vitalSigns: [],
-  });
+  const [data, setData] = useState({});
   const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState({});
+
+  const toggleSection = (section) => {
+    setExpanded((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,8 +25,6 @@ function App() {
         }
 
         const { userId } = tokenDoc.data();
-        
-        // List of possible subcollections
         const subcollections = [
           "prescriptions",
           "doctorVisits",
@@ -41,18 +34,16 @@ function App() {
           "labResults",
           "radiology",
           "heartRate",
+          "bloodPressure",
           "vitalSigns",
         ];
 
-        // Fetch all subcollections and their data
         const fetchedData = {};
-        for (let subcollection of subcollections) {
-          const subRef = collection(db, "users", userId, subcollection);
+        for (let sub of subcollections) {
+          const subRef = collection(db, "users", userId, sub);
           const snapshot = await getDocs(subRef);
-
-          // If there is data, save it in the fetchedData object
           if (!snapshot.empty) {
-            fetchedData[subcollection] = snapshot.docs.map(doc => doc.data());
+            fetchedData[sub] = snapshot.docs.map((doc) => doc.data());
           }
         }
 
@@ -66,132 +57,177 @@ function App() {
     if (token) fetchData();
   }, [token]);
 
-  if (error) return <p>{error}</p>;
-  if (!data) return <p>Loading...</p>;
+  if (error) return <p className="error">{error}</p>;
+
+  const renderSection = (title, key, contentFn) => {
+    if (!data[key] || data[key].length === 0) return null;
+    return (
+      <div className="section">
+        <div className="section-title" onClick={() => toggleSection(key)}>
+          {title}
+        </div>
+        <div className={`section-content ${expanded[key] ? "open" : ""}`}>
+          <ul>{data[key].map(contentFn)}</ul>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div className="container">
+      <style>{`
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background-color: #f5f7fa;
+          margin: 0;
+          padding: 0;
+        }
+        .container {
+          max-width: 900px;
+          margin: 0 auto;
+          padding: 20px;
+          background-color: white;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          border-radius: 10px;
+        }
+        h1 {
+          text-align: center;
+          color: #2c3e50;
+          margin-bottom: 30px;
+        }
+        .section {
+          margin-top: 20px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .section-title {
+          background-color: #3498db;
+          color: white;
+          padding: 14px 20px;
+          font-size: 18px;
+          font-weight: bold;
+          cursor: pointer;
+        }
+        .section-content {
+          padding: 15px 20px;
+          background-color: #fafafa;
+          display: none;
+        }
+        .section-content.open {
+          display: block;
+        }
+        ul {
+          list-style: none;
+          padding-left: 0;
+        }
+        li {
+          background-color: #fff;
+          margin-bottom: 10px;
+          padding: 10px 15px;
+          border-radius: 6px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        img {
+          max-width: 100%;
+          margin-top: 10px;
+          border-radius: 6px;
+        }
+      `}</style>
+
       <h1>Medical Summary</h1>
-      {data.doctorVisits && data.doctorVisits.length > 0 && (
-        <div>
-          <h2>Doctor Visits</h2>
-          <ul>
-            {data.doctorVisits.map((v, idx) => (
-              <li key={idx}>
-                {v.date} - {v.doctorName}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      
-      {/* Render Prescriptions */}
-      {data.prescriptions && data.prescriptions.length > 0 && (
-        <div>
-          <h2>Prescriptions</h2>
-          <ul>
-            {data.prescriptions.map((p, idx) => (
-              <li key={idx}>
-                {p.medicineName} - {p.dosage}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
-      {/* Render Doctor Visits */}
+      {renderSection("Blood Glucose", "bloodGlucose", (b, i) => (
+        <li key={i}>
+        Date: {new Date(b.date).toLocaleDateString()} <br />
+          Glucose Level: {b.glucoseLevel} <br />
+          Type: {b.measurementType} <br />
+          Notes: {b.notes}
+        </li>
+      ))}
 
+      {renderSection("Temperature", "temperature", (t, i) => (
+        <li key={i}>
+        Date: {new Date(t.date).toLocaleDateString()} <br />
+          Temperature: {t.temperature}°C <br />
+          Notes: {t.notes}
+        </li>
+      ))}
 
-      {/* Render Temperatures */}
-      {data.temperature && data.temperature.length > 0 && (
-        <div>
-          <h2>Temperature</h2>
-          <ul>
-            {data.temperature.map((t, idx) => (
-            <> <li key={idx}>{"Temperature: " + t.temperature}</li> 
-              <li key={idx}>{"Date: " + t.date}</li>
-              <li key={idx}>{"Notes: " + t.notes}</li>
-              <li key={idx}>{"Status: " + t.status}</li>
-              <li key={idx}>{"Unit: " + t.unit}</li>
-              <br></br>
-              </>
+      {renderSection("Heart Rate", "heartRate", (hr, i) => (
+        <li key={i}>
+        Date: {new Date(hr.date).toLocaleDateString()} <br />
+          Heart Rate: {hr.heartRate} bpm <br />
+          Notes: {hr.notes}
+        </li>
+      ))}
 
-            ))}
-          </ul>
-        </div>
-      )}
+      {renderSection("Blood Pressure", "bloodPressure", (bp, i) => (
+        <li key={i}>
+        Date: {new Date(bp.date).toLocaleDateString()} <br />
+          Systolic: {bp.systolic}, Diastolic: {bp.diastolic}, Pulse:{" "}
+          {bp.pulse} <br />
+          Classification: {bp.classification} <br />
+          Notes: {bp.notes}
+        </li>
+      ))}
 
-      {/* Render Allergies */}
-      {data.allergies && data.allergies.length > 0 && (
-        <div>
-          <h2>Allergies</h2>
-          <ul>
-            {data.allergies.map((a, idx) => (
-              <li key={idx}>{JSON.stringify(a)}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {renderSection("Blood pressure", "vitalSigns", (vs, i) => (
+  <li key={i}>
+  Date: {new Date(vs.date).toLocaleDateString()} <br />
+    Systolic: {vs.systolic} <br />
+    Diastolic: {vs.diastolic} <br />
+    Pulse: {vs.pulse} <br />
+    Notes: {vs.notes}
+    <br />
+  </li>
+))}
 
-      {/* Render Blood Glucose */}
-      {data.bloodGlucose && data.bloodGlucose.length > 0 && (
-        <div>
-          <h2>Blood Glucose</h2>
-          <ul>
-            {data.bloodGlucose.map((b, idx) => (
-              <li key={idx}>{b.level}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {renderSection("Allergies", "allergies", (a, i) => (
+       <li key={i}>
+       Allergen: {a.title} <br />
+       Items: {a.items?.join(", ")}
+       </li>
+    ))}
 
-      {/* Render Lab Results */}
-      {data.labResults && data.labResults.length > 0 && (
-        <div>
-          <h2>Lab Results</h2>
-          <ul>
-            {data.labResults.map((lr, idx) => (
-              <li key={idx}>{lr.result}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {renderSection("Lab Results", "labResults", (lr, i) => (
+       <li key={i}>
+       {lr.results.map((r, idx) => (
+         <div key={idx}>
+        Date: {r.date} <br />
+        Test: {r.test} <br />
+        Result: {r.result}
+        <br />
+      </div>
+    ))}
+  </li>
+))}
 
-      {/* Render Radiology */}
-      {data.radiology && data.radiology.length > 0 && (
-        <div>
-          <h2>Radiology</h2>
-          <ul>
-            {data.radiology.map((r, idx) => (
-              <li key={idx}>{r.imageUrl}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {renderSection("Radiology", "radiology", (r, i) => (
+        <li key={i}>
+          Scan Type: {r.scanType} <br />
+          Date: {r.date} <br />
+          Notes: {r.notes} <br />
+          {r.imageUrl && <img src={r.imageUrl} alt="Radiology" />}
+        </li>
+      ))}
 
-      {/* Render Heart Rate */}
-      {data.heartRate && data.heartRate.length > 0 && (
-        <div>
-          <h2>Heart Rate</h2>
-          <ul>
-            {data.heartRate.map((hr, idx) => (
-              <li key={idx}>{hr.bpm}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {renderSection("Prescriptions", "prescriptions", (p, i) => (
+        <li key={i}>
+          Medicines: {p.medicines?.join(", ")} <br />
+          Notes: {p.notes} <br />
+          Date: {p.date}
+        </li>
+      ))}
 
-      {/* Render Vital Signs */}
-      {data.vitalSigns && data.vitalSigns.length > 0 && (
-        <div>
-          <h2>Vital Signs</h2>
-          <ul>
-            {data.vitalSigns.map((vs, idx) => (
-              <li key={idx}>{vs.name}: {vs.value}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {renderSection("Doctor Visits", "doctorVisits", (v, i) => (
+      <li key={i}>
+        Date: {v.visitDate} <br />
+       Doctor: {v.doctorName} <br />
+       Diagnosis: {v.diagnosis} <br />
+       Notes: {v.notes}
+  </li>
+))}
     </div>
   );
 }
